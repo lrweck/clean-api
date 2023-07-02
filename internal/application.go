@@ -12,11 +12,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	slogecho "github.com/samber/slog-echo"
 	"golang.org/x/exp/slog"
 
 	"github.com/lrweck/clean-api/internal/account"
 	"github.com/lrweck/clean-api/internal/transfer"
+	"github.com/lrweck/clean-api/pkg/memorydb"
 	"github.com/lrweck/clean-api/pkg/postgres"
 	"github.com/lrweck/clean-api/pkg/rest"
 	app_middleware "github.com/lrweck/clean-api/pkg/rest/middleware"
@@ -28,21 +28,23 @@ type Application struct {
 	Services  *Services
 	Storages  *Storages
 	Common    *Common
+	StartTime time.Time
+	EndTime   time.Time
 }
 
 func NewApplication() *Application {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	// defer cancel()
 
-	writeDB, err := postgres.NewDB(ctx, os.Getenv("PG_DSN"))
-	if err != nil {
-		panic(fmt.Errorf("failed to connect to write database: %w", err))
-	}
+	// writeDB, err := postgres.NewDB(ctx, os.Getenv("PG_DSN"))
+	// if err != nil {
+	// 	panic(fmt.Errorf("failed to connect to write database: %w", err))
+	// }
 
 	common := getCommons()
-	storages := getStorages(writeDB)
+	storages := getStorages(nil)
 	services := getServices(storages)
-	webServer := getWebServer(services)
+	webServer := getWebServer(services, common)
 
 	return &Application{
 		WebServer: webServer,
@@ -54,10 +56,14 @@ func NewApplication() *Application {
 
 func (a *Application) Start(port int) error {
 	strPort := fmt.Sprintf(":%d", port)
+	a.StartTime = time.Now()
 	return a.WebServer.Start(strPort)
 }
 
 func (a *Application) Stop(ctx context.Context) error {
+	a.EndTime = time.Now()
+	<-ctx.Done()
+	a.Common.Logger.Info("stopping application, signal received", slog.Duration("took", a.EndTime.Sub(a.StartTime)))
 	return a.WebServer.Shutdown(ctx)
 }
 
@@ -74,8 +80,16 @@ type Common struct {
 }
 
 func getCommons() *Common {
+
+	env := os.Getenv("ENV")
+
+	logger := slogger.NewJSON()
+	if env == "" {
+		logger = slogger.NewText()
+	}
+
 	return &Common{
-		Logger: slogger.NewJSON(),
+		Logger: logger,
 	}
 }
 
@@ -97,18 +111,22 @@ func getServices(storages *Storages) *Services {
 }
 
 func getStorages(db *pgxpool.Pool) *Storages {
+
+	// accStorage := postgres.NewAccountStorage(db)
+	accStorage := memorydb.NewAccountStorage()
+
 	return &Storages{
-		accStorage: postgres.NewAccountStorage(db),
+		accStorage: accStorage,
 		txStorage:  postgres.NewTxStorage(db),
 	}
 }
 
-func getWebServer(svc *Services) *echo.Echo {
+func getWebServer(svc *Services, cm *Common) *echo.Echo {
 	app := echo.New()
 	// goccy is muuuch faster
 	app.JSONSerializer = rest.NewGoccyEchoSerializer()
 
-	app.Use(slogecho.New(slogger.NewJSON()))
+	app.Use(app_middleware.NewLogger(cm.Logger))
 	app.Use(middleware.RequestIDWithConfig(app_middleware.RequestID()))
 	app.Use(middleware.Recover())
 

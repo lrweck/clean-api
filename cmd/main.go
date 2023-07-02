@@ -11,8 +11,8 @@ func main() {
 	app := internal.NewApplication()
 
 	go func() {
-		if err := app.Start(8080); err != nil {
-			app.Common.Logger.Error("failed to start web server", slog.String("error", err.Error()))
+		if err := app.Start(5010); err != nil {
+			app.Common.Logger.Error("webserver closed", slog.String("error", err.Error()))
 		}
 	}()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -12,10 +13,19 @@ import (
 	"github.com/lrweck/clean-api/internal/account"
 )
 
-type POSTAccount struct {
+type POSTAccountRequest struct {
 	Name            string          `json:"name"`
 	Document        string          `json:"document"`
 	StartingBalance decimal.Decimal `json:"starting_balance"`
+}
+
+type GETAccountResponse struct {
+	ID        uuid.UUID       `json:"id"`
+	Name      string          `json:"name"`
+	Document  string          `json:"document"`
+	Balance   decimal.Decimal `json:"starting_balance"`
+	CreatedAt time.Time       `json:"created_at"`
+	UpdateAt  time.Time       `json:"updated_at,omitempty"`
 }
 
 type AccountService interface {
@@ -25,7 +35,7 @@ type AccountService interface {
 
 func V1POSTAccount(svc AccountService) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var req POSTAccount
+		var req POSTAccountRequest
 		if err := c.Bind(&req); err != nil {
 			return err
 		}
@@ -69,7 +79,7 @@ func V1GETAccount(svc AccountService) echo.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusBadRequest, echo.Map{
 				"message": "invalid account id",
-				"details": []string{"must be a valid uuid"},
+				"details": []string{"account id must be a valid uuid"},
 			})
 			return err
 		}
@@ -79,7 +89,16 @@ func V1GETAccount(svc AccountService) echo.HandlerFunc {
 			return handleGetAccountErrors(c, err)
 		}
 
-		return c.JSON(http.StatusOK, acc)
+		response := GETAccountResponse{
+			ID:        acc.ID,
+			Name:      acc.Name,
+			Document:  acc.Document,
+			Balance:   acc.Balance,
+			CreatedAt: acc.CreatedAt,
+			UpdateAt:  acc.UpdateAt,
+		}
+
+		return c.JSON(http.StatusOK, response)
 	}
 }
 

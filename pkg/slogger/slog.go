@@ -15,7 +15,7 @@ func NewJSON() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(os.Stdout, DefaultOptions))
 }
 
-func NewTextHandler() *slog.Logger {
+func NewText() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, DefaultOptions))
 }
 

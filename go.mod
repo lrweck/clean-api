@@ -8,7 +8,7 @@ require (
 	github.com/jackc/pgx-shopspring-decimal v0.0.0-20220624020537-1d36b5a1853e
 	github.com/jackc/pgx/v5 v5.4.1
 	github.com/labstack/echo/v4 v4.10.2
-	github.com/samber/slog-echo v0.3.0
+	github.com/puzpuzpuz/xsync/v2 v2.4.1
 	github.com/shopspring/decimal v1.3.1
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 )
