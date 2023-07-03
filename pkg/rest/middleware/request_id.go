@@ -5,7 +5,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func RequestID() middleware.RequestIDConfig {
+func RequestIDConfig() middleware.RequestIDConfig {
 	return middleware.RequestIDConfig{
 		Skipper: middleware.DefaultRequestIDConfig.Skipper,
 		Generator: func() string {

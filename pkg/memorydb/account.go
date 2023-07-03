@@ -10,30 +10,22 @@ import (
 )
 
 type AccountStorage struct {
-	storage *xsync.MapOf[string, account.Account]
+	storage *xsync.MapOf[string, *account.Account]
 }
 
 func NewAccountStorage() *AccountStorage {
-	return &AccountStorage{xsync.NewMapOf[account.Account]()}
+	return &AccountStorage{xsync.NewMapOf[*account.Account]()}
 }
 
 func (s *AccountStorage) GetAccount(ctx context.Context, id uuid.UUID) (*account.Account, error) {
-
-	// s.storage.Compute(id.String(), func(oldValue account.Account, loaded bool) (newValue account.Account, delete bool) {
-	// 	if !loaded {
-	// 		return account.Account{}, false
-	// 	}
-	// 	return oldValue, true
-	// })
-
 	acc, ok := s.storage.Load(id.String())
 	if !ok {
 		return nil, account.ErrNotFound
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (s *AccountStorage) CreateAccount(ctx context.Context, acc account.Account) error {
-	s.storage.Store(acc.ID.String(), acc)
+	s.storage.Store(acc.ID.String(), &acc)
 	return nil
 }
