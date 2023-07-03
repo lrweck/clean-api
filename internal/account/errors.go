@@ -17,3 +17,15 @@ func (e *ErrValidation) Error() string {
 func (e *ErrValidation) Unwrap() []error {
 	return e.errs
 }
+
+func (e *ErrValidation) Errors() []string {
+	if e == nil {
+		return nil
+	}
+
+	errs := make([]string, len(e.errs))
+	for i, err := range e.errs {
+		errs[i] = err.Error()
+	}
+	return errs
+}

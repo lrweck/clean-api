@@ -45,8 +45,6 @@ func NewLoggerWithConfig(logger *slog.Logger, config Config) echo.MiddlewareFunc
 			req := c.Request()
 			res := c.Response()
 
-			start := time.Now()
-
 			path := c.Path()
 			if path == "" {
 				path = req.URL.Path
@@ -60,7 +58,9 @@ func NewLoggerWithConfig(logger *slog.Logger, config Config) echo.MiddlewareFunc
 
 			reqBody := getRequestBody(c)
 
+			start := time.Now()
 			err = next(c)
+			end := time.Now()
 
 			requestID := req.Header.Get(echo.HeaderXRequestID)
 			if requestID == "" {
@@ -69,7 +69,7 @@ func NewLoggerWithConfig(logger *slog.Logger, config Config) echo.MiddlewareFunc
 
 			status := res.Status
 			method := req.Method
-			end := time.Now()
+
 			latency := end.Sub(start)
 			ip := c.RealIP()
 			userAgent := req.UserAgent()
@@ -138,12 +138,6 @@ func GetRequestID(c echo.Context) string {
 type responseWriter struct {
 	http.ResponseWriter
 	body []byte
-	code int
-}
-
-func (w *responseWriter) WriteHeader(code int) {
-	w.code = code
-	w.ResponseWriter.WriteHeader(code)
 }
 
 func (w *responseWriter) Write(b []byte) (int, error) {

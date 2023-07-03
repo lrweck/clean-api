@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,13 +19,14 @@ type NewAccount struct {
 func (a NewAccount) validate() error {
 	var errs []error
 	if a.Name == "" {
-		errs = append(errs, fmt.Errorf("account name is required"))
+		errs = append(errs, errors.New("account name is required"))
 	}
 	if a.Document == "" {
-		errs = append(errs, fmt.Errorf("account document is required"))
+		errs = append(errs, errors.New("account document is required"))
 	}
 
 	if len(errs) > 0 {
+		fmt.Printf("\n\ngot %d errors: %v\n\n", len(errs), errs)
 		return &ErrValidation{errs}
 	}
 

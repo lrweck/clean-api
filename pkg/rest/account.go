@@ -33,7 +33,7 @@ type AccountService interface {
 	Retrieve(ctx context.Context, id uuid.UUID) (*account.Account, error)
 }
 
-func V1POSTAccount(svc AccountService) echo.HandlerFunc {
+func V1_POST_Account(svc AccountService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req POSTAccountRequest
 		if err := c.Bind(&req); err != nil {
@@ -59,27 +59,26 @@ func V1POSTAccount(svc AccountService) echo.HandlerFunc {
 func handlePostAccountErrors(c echo.Context, err error) error {
 
 	if errval := new(account.ErrValidation); errors.As(err, &errval) {
+
 		c.JSON(http.StatusBadRequest, echo.Map{
 			"message": errval.Error(),
-			"details": errval.Unwrap(),
+			"details": errval.Errors(),
 		})
 		return err
 	}
 
-	c.JSON(http.StatusInternalServerError, echo.Map{
-		"message": http.StatusText(http.StatusInternalServerError),
-	})
+	c.JSON(http.StatusInternalServerError, ErrInternalServerError)
 	return err
 
 }
 
-func V1GETAccount(svc AccountService) echo.HandlerFunc {
+func V1_GET_Account(svc AccountService) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		id, err := uuid.Parse(c.Param("id"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, echo.Map{
 				"message": "invalid account id",
-				"details": []string{"account id must be a valid uuid"},
+				"details": []string{"must be a valid uuid"},
 			})
 			return err
 		}
@@ -111,9 +110,11 @@ func handleGetAccountErrors(c echo.Context, err error) error {
 		return err
 	}
 
-	c.JSON(http.StatusInternalServerError, echo.Map{
-		"message": http.StatusText(http.StatusInternalServerError),
-	})
+	c.JSON(http.StatusInternalServerError, ErrInternalServerError)
 	return err
 
+}
+
+var ErrInternalServerError = echo.Map{
+	"message": http.StatusText(http.StatusInternalServerError),
 }

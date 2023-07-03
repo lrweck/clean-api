@@ -32,11 +32,11 @@
         "colId": "history",
         "containerId": "",
         "name": "http://localhost:5010/v1/accounts/1",
-        "url": "http://localhost:5010/v1/accounts/1d86f76a-fcd9-45cb-998e-4e8ddde8d8c7",
+        "url": "http://localhost:5010/v1/accounts/cd4c033f-ae85-42c2-9f20-18581e5161e2",
         "method": "GET",
         "sortNum": 0,
         "created": "2023-07-02T06:38:42.175Z",
-        "modified": "2023-07-02T07:02:22.905Z",
+        "modified": "2023-07-03T13:31:40.837Z",
         "headers": [],
         "params": [],
         "tests": []
@@ -50,12 +50,12 @@
         "method": "POST",
         "sortNum": 0,
         "created": "2023-07-02T06:40:19.372Z",
-        "modified": "2023-07-02T06:40:19.372Z",
+        "modified": "2023-07-03T13:32:42.898Z",
         "headers": [],
         "params": [],
         "body": {
             "type": "json",
-            "raw": "{ \n  \"name\": \"luis\",\n  \"document\": \"12345678\",\n  \"starting_balance\": 100\n}",
+            "raw": "{ \n  \"name\": \"\",\n  \"document\": \"12345678\",\n  \"starting_balance\": 100.123\n}",
             "form": []
         },
         "tests": []

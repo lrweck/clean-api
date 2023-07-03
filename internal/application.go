@@ -2,7 +2,9 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/shopspring/decimal"
 	"golang.org/x/exp/slog"
 
 	"github.com/lrweck/clean-api/internal/account"
@@ -41,6 +44,8 @@ func NewApplication() *Application {
 	// 	panic(fmt.Errorf("failed to connect to write database: %w", err))
 	// }
 
+	decimal.MarshalJSONWithoutQuotes = true
+
 	common := getCommons()
 	storages := getStorages(nil)
 	services := getServices(storages)
@@ -57,21 +62,45 @@ func NewApplication() *Application {
 func (a *Application) Start(port int) error {
 	strPort := fmt.Sprintf(":%d", port)
 	a.StartTime = time.Now()
-	return a.WebServer.Start(strPort)
+	a.Common.Logger.Info("starting application", slog.Int("port", port))
+
+	err := a.WebServer.Start(strPort)
+
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
 }
 
-func (a *Application) Stop(ctx context.Context) error {
+func (a *Application) Stop(ctx context.Context, waitCh <-chan os.Signal) error {
+	signal := <-waitCh
 	a.EndTime = time.Now()
-	<-ctx.Done()
-	a.Common.Logger.Info("stopping application, signal received", slog.Duration("took", a.EndTime.Sub(a.StartTime)))
-	return a.WebServer.Shutdown(ctx)
+
+	start := time.Now()
+	err := a.WebServer.Shutdown(ctx)
+	took := time.Since(start)
+
+	a.Common.Logger.Info("signal received, stopping application",
+		slog.Duration("up_for", a.EndTime.Sub(a.StartTime)),
+		slog.String("signal", signal.String()),
+		slog.Duration("shutdown_took", took))
+
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
 }
 
 func (a *Application) WaitSignal() error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	waitCh := make(chan os.Signal, 1)
+	signal.Notify(waitCh, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 
-	return a.Stop(ctx)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	return a.Stop(ctx, waitCh)
 }
 
 type Common struct {
@@ -111,12 +140,8 @@ func getServices(storages *Storages) *Services {
 }
 
 func getStorages(db *pgxpool.Pool) *Storages {
-
-	// accStorage := postgres.NewAccountStorage(db)
-	accStorage := memorydb.NewAccountStorage()
-
 	return &Storages{
-		accStorage: accStorage,
+		accStorage: memorydb.NewAccountStorage(), // postgres.NewAccountStorage(db)
 		txStorage:  postgres.NewTxStorage(db),
 	}
 }
@@ -124,10 +149,13 @@ func getStorages(db *pgxpool.Pool) *Storages {
 func getWebServer(svc *Services, cm *Common) *echo.Echo {
 	app := echo.New()
 	// goccy is muuuch faster
-	app.JSONSerializer = rest.NewGoccyEchoSerializer()
+	// app.JSONSerializer = rest.NewGoccyEchoSerializer()
+
+	app.HideBanner = true
+	app.HidePort = true
 
 	app.Use(app_middleware.NewLogger(cm.Logger))
-	app.Use(middleware.RequestIDWithConfig(app_middleware.RequestID()))
+	app.Use(middleware.RequestIDWithConfig(app_middleware.RequestIDConfig()))
 	app.Use(middleware.Recover())
 
 	configureRoutes(app, svc)
@@ -139,8 +167,8 @@ func configureRoutes(e *echo.Echo, svcs *Services) {
 	V1 := e.Group("/v1")
 
 	accounts := V1.Group("/accounts")
-	accounts.POST("/", rest.V1POSTAccount(svcs.accService))
-	accounts.GET("/:id", rest.V1GETAccount(svcs.accService))
+	accounts.POST("", rest.V1_POST_Account(svcs.accService))
+	accounts.GET("/:id", rest.V1_GET_Account(svcs.accService))
 
 	// transfers := V1.Group("/transfers")
 	// transfers.POST("/", rest.V1POSTTransfer(svcs.txService))

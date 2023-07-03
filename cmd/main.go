@@ -1,6 +1,8 @@
 package main
 
 import (
+	_ "github.com/KimMachineGun/automemlimit"
+	_ "go.uber.org/automaxprocs"
 	"golang.org/x/exp/slog"
 
 	"github.com/lrweck/clean-api/internal"
