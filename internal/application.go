@@ -138,6 +138,12 @@ func getWebServer(svc *Services, cm *Common) *echo.Echo {
 func configureRoutes(e *echo.Echo, svcs *Services) {
 	V1 := e.Group("/v1")
 
-	V1.POST("/accounts", rest.V1POSTAccount(svcs.accService))
-	V1.GET("/accounts/:id", rest.V1GETAccount(svcs.accService))
+	accounts := V1.Group("/accounts")
+	accounts.POST("/", rest.V1POSTAccount(svcs.accService))
+	accounts.GET("/:id", rest.V1GETAccount(svcs.accService))
+
+	// transfers := V1.Group("/transfers")
+	// transfers.POST("/", rest.V1POSTTransfer(svcs.txService))
+	// transfers.GET("/:id", rest.V1GETTransfer(svcs.txService))
+
 }
