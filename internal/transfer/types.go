@@ -4,18 +4,18 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/oklog/ulid/v2"
 	"github.com/shopspring/decimal"
 )
 
 type Storage interface {
 	CreateTx(ctx context.Context, tx Transaction) error
-	GetTx(ctx context.Context, id uuid.UUID) (*Transaction, error)
+	GetTx(ctx context.Context, id ulid.ULID) (*Transaction, error)
 }
 
 type NewTx struct {
-	From   uuid.UUID
-	To     uuid.UUID
+	From   ulid.ULID
+	To     ulid.ULID
 	Amount decimal.Decimal
 }
 
@@ -32,9 +32,9 @@ func (n NewTx) validate() error {
 }
 
 type Transaction struct {
-	ID        uuid.UUID
-	From      uuid.UUID
-	To        uuid.UUID
+	ID        ulid.ULID
+	From      ulid.ULID
+	To        ulid.ULID
 	Amount    decimal.Decimal
 	CreatedAt time.Time
 }
@@ -46,6 +46,6 @@ type Service struct {
 }
 
 type (
-	IDGen func() uuid.UUID
+	IDGen func() ulid.ULID
 	Clock func() time.Time
 )

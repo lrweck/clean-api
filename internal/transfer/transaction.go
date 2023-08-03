@@ -2,9 +2,10 @@ package transfer
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/oklog/ulid/v2"
 
 	"github.com/lrweck/clean-api/pkg/errwrap"
 )
@@ -12,7 +13,7 @@ import (
 func NewService(s Storage, id IDGen, clock Clock) *Service {
 
 	if id == nil {
-		id = uuid.New
+		id = ulid.Make
 	}
 
 	if clock == nil {
@@ -22,10 +23,10 @@ func NewService(s Storage, id IDGen, clock Clock) *Service {
 	return &Service{s, id, clock}
 }
 
-func (s *Service) New(ctx context.Context, tx NewTx) (*uuid.UUID, error) {
+func (s *Service) New(ctx context.Context, tx NewTx) (ulid.ULID, error) {
 
 	if err := tx.validate(); err != nil {
-		return nil, err
+		return ulid.ULID{}, err
 	}
 
 	id := s.idGen()
@@ -38,13 +39,13 @@ func (s *Service) New(ctx context.Context, tx NewTx) (*uuid.UUID, error) {
 	}
 
 	if err := s.repo.CreateTx(ctx, t); err != nil {
-		return nil, err
+		return ulid.ULID{}, fmt.Errorf("failed to create a new transfer transaction: %w", err)
 	}
 
-	return &id, nil
+	return id, nil
 }
 
-func (s *Service) Retrieve(ctx context.Context, id uuid.UUID) (*Transaction, error) {
+func (s *Service) Retrieve(ctx context.Context, id ulid.ULID) (*Transaction, error) {
 
 	t, err := s.repo.GetTx(ctx, id)
 

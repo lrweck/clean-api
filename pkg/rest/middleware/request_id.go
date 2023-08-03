@@ -7,7 +7,7 @@ import (
 
 func RequestIDConfig() middleware.RequestIDConfig {
 	return middleware.RequestIDConfig{
-		Skipper: middleware.DefaultRequestIDConfig.Skipper,
+		Skipper: Skipper,
 		Generator: func() string {
 			return uuid.NewString()
 		},

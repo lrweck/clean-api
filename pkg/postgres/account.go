@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	pgxdecimal "github.com/jackc/pgx-shopspring-decimal"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	decimal "github.com/shopspring/decimal"
+	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 
 	"github.com/lrweck/clean-api/internal/account"
 	"github.com/lrweck/clean-api/pkg/errwrap"
@@ -26,7 +26,7 @@ func NewAccountStorage(db *pgxpool.Pool) *AccountStorage {
 }
 
 type accountScan struct {
-	ID        uuid.UUID
+	ID        ulid.ULID
 	Name      string
 	Document  string
 	Balance   pgxdecimal.Decimal
@@ -37,11 +37,11 @@ type accountScan struct {
 var (
 	getAccountSQL = `
 SELECT id,name,document,balance,created_at,updated_at 
-  FROM accounts
+  FROM account
  WHERE id = $1`
 )
 
-func (s *AccountStorage) GetAccount(ctx context.Context, id uuid.UUID) (*account.Account, error) {
+func (s *AccountStorage) GetAccount(ctx context.Context, id ulid.ULID) (*account.Account, error) {
 	var acc accountScan
 	err := s.db.QueryRow(ctx, getAccountSQL, id).
 		Scan(&acc.ID,

@@ -12,6 +12,8 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/exp/slog"
+
+	"github.com/lrweck/clean-api/pkg/slogger"
 )
 
 const requestIDCtx = "slog-echo.request-id"
@@ -38,10 +40,23 @@ func NewLogger(logger *slog.Logger) echo.MiddlewareFunc {
 	})
 }
 
+func getRequestIdFromHeader(req *http.Request, resp *echo.Response) string {
+	requestID := req.Header.Get(echo.HeaderXRequestID)
+	if requestID == "" {
+		requestID = resp.Header().Get(echo.HeaderXRequestID)
+	}
+	return requestID
+}
+
 // NewLoggerWithConfig returns a echo.HandlerFunc (middleware) that logs requests using slog.
 func NewLoggerWithConfig(logger *slog.Logger, config Config) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {
+
+			if Skipper(c) {
+				return next(c)
+			}
+
 			req := c.Request()
 			res := c.Response()
 
@@ -58,14 +73,21 @@ func NewLoggerWithConfig(logger *slog.Logger, config Config) echo.MiddlewareFunc
 
 			reqBody := getRequestBody(c)
 
+			reqID := req.Header.Get(echo.HeaderXRequestID)
+
+			l := slogger.FromContext(req.Context())
+
+			// set request-id for every request-scoped logger
+			ctx := context.WithValue(
+				req.Context(),
+				slogger.LoggerKey,
+				l.With(slog.String("request-id", reqID)))
+
+			c.SetRequest(req.WithContext(ctx))
+
 			start := time.Now()
 			err = next(c)
 			end := time.Now()
-
-			requestID := req.Header.Get(echo.HeaderXRequestID)
-			if requestID == "" {
-				requestID = res.Header().Get(echo.HeaderXRequestID)
-			}
 
 			status := res.Status
 			method := req.Method
@@ -83,7 +105,6 @@ func NewLoggerWithConfig(logger *slog.Logger, config Config) echo.MiddlewareFunc
 			}
 
 			attributes := []slog.Attr{
-				slog.Time("time", end),
 				slog.String("path", path),
 				slog.String("remote-ip", ip),
 				slog.String("user-agent", userAgent),
@@ -104,10 +125,10 @@ func NewLoggerWithConfig(logger *slog.Logger, config Config) echo.MiddlewareFunc
 			}
 
 			if config.WithRequestID {
-				attributes = append(attributes, slog.String("request-id", requestID))
+				attributes = append(attributes, slog.String("request-id", getRequestIdFromHeader(req, res)))
 			}
 
-			msg := fmt.Sprintf("%d %s", res.Status, req.URL.Path)
+			msg := fmt.Sprintf("%s %s", req.Method, req.URL.Path)
 
 			switch {
 			case status >= http.StatusInternalServerError:

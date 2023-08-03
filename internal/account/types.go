@@ -3,10 +3,9 @@ package account
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/oklog/ulid/v2"
 	"github.com/shopspring/decimal"
 )
 
@@ -26,7 +25,6 @@ func (a NewAccount) validate() error {
 	}
 
 	if len(errs) > 0 {
-		fmt.Printf("\n\ngot %d errors: %v\n\n", len(errs), errs)
 		return &ErrValidation{errs}
 	}
 
@@ -34,7 +32,7 @@ func (a NewAccount) validate() error {
 }
 
 type Account struct {
-	ID        uuid.UUID
+	ID        ulid.ULID
 	Name      string
 	Document  string
 	Balance   decimal.Decimal
@@ -43,17 +41,17 @@ type Account struct {
 }
 
 type Storage interface {
-	GetAccount(ctx context.Context, id uuid.UUID) (*Account, error)
+	GetAccount(ctx context.Context, id string) (*Account, error)
 	CreateAccount(ctx context.Context, acc Account) error
 }
 
 type Service struct {
 	repo  Storage
-	idGen func() uuid.UUID
-	now   func() time.Time
+	idGen IDGen
+	now   Clock
 }
 
 type (
-	IDGen func() uuid.UUID
+	IDGen func() ulid.ULID
 	Clock func() time.Time
 )

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
+	"github.com/oklog/ulid/v2"
 
 	"github.com/lrweck/clean-api/internal/account"
 )
@@ -17,11 +17,11 @@ var (
 )
 
 type ErrAccountNotFound struct {
-	account uuid.UUID
+	account ulid.ULID
 	which   string
 }
 
-func NewErrAccountNotFound(account uuid.UUID, which string) *ErrAccountNotFound {
+func NewErrAccountNotFound(account ulid.ULID, which string) *ErrAccountNotFound {
 	return &ErrAccountNotFound{
 		account: account,
 		which:   which,

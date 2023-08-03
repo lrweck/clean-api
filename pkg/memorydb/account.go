@@ -3,7 +3,6 @@ package memorydb
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/puzpuzpuz/xsync/v2"
 
 	"github.com/lrweck/clean-api/internal/account"
@@ -17,8 +16,8 @@ func NewAccountStorage() *AccountStorage {
 	return &AccountStorage{xsync.NewMapOf[*account.Account]()}
 }
 
-func (s *AccountStorage) GetAccount(ctx context.Context, id uuid.UUID) (*account.Account, error) {
-	acc, ok := s.storage.Load(id.String())
+func (s *AccountStorage) GetAccount(ctx context.Context, id string) (*account.Account, error) {
+	acc, ok := s.storage.Load(id)
 	if !ok {
 		return nil, account.ErrNotFound
 	}

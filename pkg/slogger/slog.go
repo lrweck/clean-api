@@ -12,17 +12,25 @@ var DefaultOptions = &slog.HandlerOptions{
 }
 
 func NewJSON() *slog.Logger {
-	return slog.New(slog.NewJSONHandler(os.Stdout, DefaultOptions))
+	l := slog.New(slog.NewJSONHandler(os.Stdout, DefaultOptions))
+	slog.SetDefault(l)
+	return l
 }
 
 func NewText() *slog.Logger {
-	return slog.New(slog.NewTextHandler(os.Stdout, DefaultOptions))
+	l := slog.New(slog.NewTextHandler(os.Stdout, DefaultOptions))
+	slog.SetDefault(l)
+	return l
 }
 
 func NewJSONWithOptions(w io.Writer, opts *slog.HandlerOptions) *slog.Logger {
-	return slog.New(slog.NewJSONHandler(w, opts))
+	l := slog.New(slog.NewJSONHandler(w, opts))
+	slog.SetDefault(l)
+	return l
 }
 
 func NewTextWithOptions(w io.Writer, opts *slog.HandlerOptions) *slog.Logger {
-	return slog.New(slog.NewTextHandler(w, opts))
+	l := slog.New(slog.NewTextHandler(w, opts))
+	slog.SetDefault(l)
+	return l
 }
